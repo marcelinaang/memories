@@ -1,14 +1,22 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Button, Paper, TextField, Typography } from "@material-ui/core";
 import FileBase from "react-file-base64";
-import { useDispatch } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 
 import useStyles from "./styles";
-import { createPost } from "../../actions/posts";
+import { createPost, updatePost } from "../../actions/posts";
 
-const Form = () => {
+const Form = ({ currentId, setCurrentId }) => {
     const classes = useStyles();
     const dispatch = useDispatch();
+
+    const post = useSelector((state) =>
+        currentId ? state.posts.find((p) => p._id === currentId) : null
+    );
+
+    useEffect(() => {
+        if (post) setPostData(post);
+    }, [post]);
 
     const [postData, setPostData] = useState({
         creator: "",
@@ -18,20 +26,38 @@ const Form = () => {
         selectedFile: "",
     });
 
+    const clearForm = () => {
+        setCurrentId(null);
+        setPostData({
+            creator: "",
+            title: "",
+            message: "",
+            tags: "",
+            selectedFile: "",
+        });
+    };
+
     const handleSubmit = (e) => {
         e.preventDefault();
 
-        dispatch(createPost(postData));
-    };
+        if (currentId) {
+            dispatch(updatePost(currentId, postData));
+        } else {
+            dispatch(createPost(postData));
+        }
 
-    const handleClear = () => {
-        // TODO: handleClear Form
-
+        clearForm();
     };
 
     const handleChange = (e) => {
         setPostData({ ...postData, [e.target.name]: e.target.value });
     };
+
+    const handleTags = (e) => {
+        console.log(e.target.value.split(','));
+        setPostData({ ...postData, [e.target.name]: e.target.value.split(',') });
+    };
+
     const handleFileInput = ({ base64 }) => {
         setPostData({ ...postData, selectedFile: base64 });
     };
@@ -44,7 +70,9 @@ const Form = () => {
                 className={`${classes.root} ${classes.form}`}
                 onSubmit={handleSubmit}
             >
-                <Typography variant="h6">Creating a Memory</Typography>
+                <Typography variant="h6">
+                    {currentId ? "Editing" : "Creating"} a Memory
+                </Typography>
                 <TextField
                     name="creator"
                     variant="outlined"
@@ -77,7 +105,7 @@ const Form = () => {
                     label="Tags"
                     fullWidth
                     value={postData.tags}
-                    onChange={handleChange}
+                    onChange={handleTags}
                 />
                 <div className={classes.fileInput}>
                     <FileBase
@@ -101,7 +129,7 @@ const Form = () => {
                     variant="contained"
                     color="secondary"
                     size="small"
-                    onClick={handleClear}
+                    onClick={clearForm}
                     fullWidth
                 >
                     Clear
